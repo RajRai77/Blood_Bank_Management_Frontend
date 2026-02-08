@@ -2,16 +2,16 @@ import React from "react"; // <--- THIS WAS MISSING
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
-// Layout
-// Make sure this matches your filename exactly (Capital 'L')
+
 import Layout from "./components/layout/Layout"; 
 import Login from "./pages/auth/Login";
 import Dashboard from "./pages/dashboard/Dashboard";
+import Inventory from "./pages/inventory/Inventory";
+import Lab from "./pages/lab/Lab";
 
 // Placeholder Pages
 
-const Inventory = () => <h1>Inventory List</h1>;
-const Lab = () => <h1>Lab Console</h1>;
+
 
 // Auth Guard
 const ProtectedRoute = ({ children }) => {
