@@ -69,3 +69,62 @@ body {
 .badge-warning { background-color: #FEF3C7; color: #92400E; }
 .badge-danger  { background-color: #FEE2E2; color: #B91C1C; }
 .badge-info    { background-color: #DBEAFE; color: #1E40AF; }
+
+/* Default Desktop Styles */
+.sidebar-container {
+  transform: translateX(0);
+  transition: transform 0.3s ease-in-out;
+}
+
+.main-content {
+  margin-left: 260px; /* Desktop Sidebar Width */
+  width: calc(100% - 260px);
+}
+
+.mobile-header {
+  display: none !important; /* Hidden on Desktop */
+}
+
+.sidebar-overlay {
+  display: none;
+}
+
+/* Mobile Styles (Phones & Tablets) */
+@media (max-width: 768px) {
+  .sidebar-container {
+    transform: translateX(-100%); /* Hidden by default */
+    box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+  }
+
+  .sidebar-container.open {
+    transform: translateX(0); /* Slide in */
+  }
+
+  .main-content {
+    margin-left: 0 !important; /* Full width */
+    width: 100%;
+    padding: 16px !important; /* Smaller padding */
+    margin-top: 60px; /* Space for header */
+  }
+
+  .mobile-header {
+    display: flex !important;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 60px;
+    z-index: 900;
+    background-color: white;
+    border-bottom: 1px solid #E5E7EB;
+    align-items: center;
+    padding: 0 16px;
+    justify-content: space-between;
+  }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+  }
+}

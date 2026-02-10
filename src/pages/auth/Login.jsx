@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Droplet, Lock, Mail, ArrowRight, AlertCircle } from "lucide-react";
 import toast from "react-hot-toast";
 import { login } from "../../services/auth.service";
@@ -161,6 +161,17 @@ const Login = () => {
             )}
           </button>
         </form>
+
+
+          <div style={{ marginTop: "24px", textAlign: "center" }}>
+          <p style={{ fontSize: "0.9rem", color: "#6B7280" }}>
+            Don't have an account?{" "}
+            <Link to="/register" style={{ color: theme.colors.primary, fontWeight: "600", textDecoration: "none" }}>
+              Register Now
+            </Link>
+          </p>
+        </div>
+
 
         {/* Footer */}
         <div style={{ marginTop: "24px", paddingTop: "24px", borderTop: "1px solid #E5E7EB", textAlign: "center" }}>

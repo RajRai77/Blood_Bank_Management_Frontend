@@ -1,18 +1,25 @@
 import React, { useState, useEffect } from "react";
 import { theme } from "../../styles/theme";
-import { getUntestedUnits } from "../../services/lab.service";
+import { getUntestedUnits, getSafeUnits } from "../../services/lab.service"; // Import getSafeUnits
 import TTIModal from "../../components/common/TTIModal";
-import { Beaker, CheckCircle } from "lucide-react";
+import ComponentModal from "../../components/common/ComponentModal"; // Import the new modal
+import { Beaker, Layers, AlertCircle, CheckCircle } from "lucide-react";
 
 const Lab = () => {
-  const [activeTab, setActiveTab] = useState("screening"); // 'screening' or 'processing'
+  const [activeTab, setActiveTab] = useState("screening"); 
   const [units, setUnits] = useState([]);
-  const [selectedUnit, setSelectedUnit] = useState(null); // For Modal
+  const [selectedUnit, setSelectedUnit] = useState(null); 
+  const [modalType, setModalType] = useState(null); // 'tti' or 'component'
 
   const fetchUnits = async () => {
     try {
-      // For now, let's just build the Screening Tab
-      const res = await getUntestedUnits();
+      let res;
+      if (activeTab === "screening") {
+        res = await getUntestedUnits();
+      } else {
+        // Fetch SAFE units that are still WHOLE BLOOD (haven't been split yet)
+        res = await getSafeUnits(); 
+      }
       setUnits(res.data.data);
     } catch (error) {
       console.error(error);
@@ -22,6 +29,11 @@ const Lab = () => {
   useEffect(() => {
     fetchUnits();
   }, [activeTab]);
+
+  const openModal = (unit) => {
+    setSelectedUnit(unit);
+    setModalType(activeTab === "screening" ? "tti" : "component");
+  };
 
   return (
     <div className="page-container">
@@ -34,62 +46,73 @@ const Lab = () => {
           onClick={() => setActiveTab("screening")}
           style={{ 
             padding: "12px 0", borderBottom: activeTab === "screening" ? `3px solid ${theme.colors.primary}` : "none",
-            color: activeTab === "screening" ? theme.colors.primary : theme.colors.textSecondary, fontWeight: "600", cursor: "pointer", background: "none", borderTop: "none", borderLeft: "none", borderRight: "none"
+            color: activeTab === "screening" ? theme.colors.primary : theme.colors.textSecondary, fontWeight: "600", cursor: "pointer", background: "none", border: "none"
           }}
         >
-          TTI Screening ({units.length})
+          TTI Screening
         </button>
         <button 
           onClick={() => setActiveTab("processing")}
           style={{ 
             padding: "12px 0", borderBottom: activeTab === "processing" ? `3px solid ${theme.colors.primary}` : "none",
-            color: activeTab === "processing" ? theme.colors.primary : theme.colors.textSecondary, fontWeight: "600", cursor: "pointer", background: "none", borderTop: "none", borderLeft: "none", borderRight: "none"
+            color: activeTab === "processing" ? theme.colors.primary : theme.colors.textSecondary, fontWeight: "600", cursor: "pointer", background: "none", border: "none"
           }}
         >
           Component Separation
         </button>
       </div>
 
-      {/* List */}
-      {activeTab === "screening" && (
-        <div style={{ display: "grid", gap: "16px" }}>
-          {units.map(unit => (
-            <div key={unit._id} style={{ 
-              display: "flex", justifyContent: "space-between", alignItems: "center",
-              padding: "20px", backgroundColor: "white", borderRadius: "12px", boxShadow: theme.shadows.card
-            }}>
-              <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-                <div style={{ padding: "12px", backgroundColor: "#FEF3C7", borderRadius: "8px", color: "#B45309" }}>
-                   <Beaker size={24} />
-                </div>
-                <div>
-                  <h3 style={{ fontWeight: "700", fontSize: "1.1rem" }}>{unit.unitId}</h3>
-                  <p style={{ color: "#666", fontSize: "0.9rem" }}>Group: {unit.bloodGroup} • {unit.inventoryType}</p>
-                </div>
+      {/* Unit List */}
+      <div style={{ display: "grid", gap: "16px" }}>
+        {units.map(unit => (
+          <div key={unit._id} style={{ 
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+            padding: "20px", backgroundColor: "white", borderRadius: "12px", boxShadow: theme.shadows.card,
+            borderLeft: `4px solid ${activeTab === 'screening' ? theme.colors.status.warning : theme.colors.status.safe}`
+          }}>
+            <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+              <div style={{ 
+                padding: "12px", borderRadius: "8px", 
+                backgroundColor: activeTab === "screening" ? "#FEF3C7" : "#D1FAE5",
+                color: activeTab === "screening" ? "#B45309" : "#065F46" 
+              }}>
+                 {activeTab === "screening" ? <Beaker size={24} /> : <Layers size={24} />}
               </div>
-              
-              <button 
-                onClick={() => setSelectedUnit(unit)}
-                style={{
-                  padding: "10px 20px", backgroundColor: theme.colors.secondary, color: "white",
-                  border: "none", borderRadius: "8px", fontWeight: "600", cursor: "pointer"
-                }}
-              >
-                Update Results
-              </button>
+              <div>
+                <h3 style={{ fontWeight: "700", fontSize: "1.1rem" }}>{unit.unitId}</h3>
+                <p style={{ color: "#666", fontSize: "0.9rem" }}>Group: {unit.bloodGroup} • {unit.inventoryType}</p>
+                {activeTab === "processing" && (
+                   <span className="badge badge-success" style={{marginTop: "4px"}}>Tested Safe</span>
+                )}
+              </div>
             </div>
-          ))}
-          {units.length === 0 && <p>No units pending screening.</p>}
-        </div>
-      )}
+            
+            <button 
+              onClick={() => openModal(unit)}
+              style={{
+                padding: "10px 20px", backgroundColor: theme.colors.secondary, color: "white",
+                border: "none", borderRadius: "8px", fontWeight: "600", cursor: "pointer"
+              }}
+            >
+              {activeTab === "screening" ? "Update Results" : "Process Components"}
+            </button>
+          </div>
+        ))}
+        {units.length === 0 && (
+          <p style={{ color: "#666", padding: "20px", textAlign: "center" }}>
+            {activeTab === "screening" 
+              ? "No new units pending screening." 
+              : "No safe Whole Blood units available for processing."}
+          </p>
+        )}
+      </div>
 
-      {/* TTI Modal */}
-      {selectedUnit && (
-        <TTIModal 
-          unit={selectedUnit} 
-          onClose={() => setSelectedUnit(null)} 
-          onSuccess={fetchUnits} 
-        />
+      {/* Modals */}
+      {selectedUnit && modalType === "tti" && (
+        <TTIModal unit={selectedUnit} onClose={() => setSelectedUnit(null)} onSuccess={fetchUnits} />
+      )}
+      {selectedUnit && modalType === "component" && (
+        <ComponentModal unit={selectedUnit} onClose={() => setSelectedUnit(null)} onSuccess={fetchUnits} />
       )}
     </div>
   );

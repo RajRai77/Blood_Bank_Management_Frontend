@@ -14,6 +14,7 @@ export const logout = async () => {
   localStorage.clear();
 };
 
-export const getCurrentUser = () => {
-  return JSON.parse(localStorage.getItem("user"));
-};
+export const register = (data) => API.post("/users/register", data); // New
+export const getHospitalsList = () => API.get("/users/hospitals"); // New
+
+export const getCurrentUser = () => API.get("/users/current-user");

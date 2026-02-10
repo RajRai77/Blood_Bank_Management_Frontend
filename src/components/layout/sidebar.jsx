@@ -1,3 +1,4 @@
+import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, 
@@ -7,12 +8,12 @@ import {
   Truck, 
   Calendar, 
   Activity,
-  LogOut 
-} from "lucide-react"; // npm install lucide-react if you haven't
+  LogOut,
+  X 
+} from "lucide-react";
 import { theme } from "../../styles/theme";
-import React from "react"; // <--- THIS WAS MISSING
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
 
   const menuItems = [
@@ -22,7 +23,7 @@ const Sidebar = () => {
     { path: "/requests", icon: <FileText size={20} />, label: "Requests" },
     { path: "/logistics", icon: <Truck size={20} />, label: "Logistics" },
     { path: "/camps", icon: <Calendar size={20} />, label: "Camps" },
-    { path: "/lab", icon: <Activity size={20} />, label: "Lab Manager" }, // New!
+    { path: "/lab", icon: <Activity size={20} />, label: "Lab Manager" },
   ];
 
   const handleLogout = () => {
@@ -31,32 +32,49 @@ const Sidebar = () => {
   };
 
   return (
-    <div style={{
-      width: "260px", 
-      height: "100vh", 
-      backgroundColor: theme.colors.surface, 
-      borderRight: `1px solid ${theme.colors.border}`,
-      position: "fixed",
-      left: 0,
-      top: 0,
-      display: "flex",
-      flexDirection: "column",
-      zIndex: 1000
-    }}>
+    <div 
+      className={`sidebar-container ${isOpen ? 'open' : ''}`}
+      style={{
+        width: "260px", 
+        height: "100vh", 
+        backgroundColor: theme.colors.surface, 
+        borderRight: `1px solid ${theme.colors.border}`,
+        position: "fixed",
+        left: 0,
+        top: 0,
+        display: "flex",
+        flexDirection: "column",
+        zIndex: 1000 // Higher than everything
+      }}
+    >
       {/* 1. Logo Section */}
-      <div style={{ padding: "24px", display: "flex", alignItems: "center", gap: "12px" }}>
-        <div style={{
-          width: "40px", height: "40px", 
-          backgroundColor: theme.colors.primaryBg || "#FEE2E2", 
-          borderRadius: "8px",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          color: theme.colors.primary
-        }}>
-          <Droplet fill="currentColor" size={24} />
+      <div style={{ padding: "24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{
+            width: "40px", height: "40px", 
+            backgroundColor: "#FEE2E2", 
+            borderRadius: "8px",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            color: theme.colors.primary
+          }}>
+            <Droplet fill="currentColor" size={24} />
+          </div>
+          <h1 style={{ fontSize: "1.25rem", fontWeight: "700", color: theme.colors.textPrimary }}>
+            eBloodCare
+          </h1>
         </div>
-        <h1 style={{ fontSize: "1.25rem", fontWeight: "700", color: theme.colors.textPrimary }}>
-          eBloodCare
-        </h1>
+        
+        {/* Close Button (Mobile Only) */}
+        <button 
+            onClick={onClose}
+            className="mobile-only" // We can hide this via CSS on desktop if needed, but the sidebar is fixed there anyway
+            style={{ 
+                background: "none", border: "none", cursor: "pointer", 
+                display: window.innerWidth > 768 ? "none" : "block" // Simple inline check
+            }}
+        >
+            <X size={24} color={theme.colors.textSecondary} />
+        </button>
       </div>
 
       {/* 2. Navigation Menu */}
@@ -67,6 +85,7 @@ const Sidebar = () => {
             <Link 
               key={item.path} 
               to={item.path}
+              onClick={onClose} // Auto-close sidebar on mobile when link is clicked
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -77,7 +96,6 @@ const Sidebar = () => {
                 textDecoration: "none",
                 fontSize: "0.95rem",
                 fontWeight: "500",
-                // Active State Styling (Red Background if active)
                 backgroundColor: isActive ? theme.colors.primary : "transparent",
                 color: isActive ? "#FFF" : theme.colors.textSecondary,
                 transition: "all 0.2s ease"
@@ -100,8 +118,6 @@ const Sidebar = () => {
              color: theme.colors.textSecondary, cursor: "pointer",
              padding: "8px", borderRadius: "8px"
            }}
-           onMouseOver={(e) => e.target.style.color = theme.colors.primary}
-           onMouseOut={(e) => e.target.style.color = theme.colors.textSecondary}
          >
            <LogOut size={20} />
            <span>Logout</span>
