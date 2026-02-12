@@ -4,11 +4,13 @@ import { theme } from "../../styles/theme";
 import { createRequest } from "../../services/request.service";
 import { getHospitalsList, getCurrentUser } from "../../services/auth.service"; 
 import toast from "react-hot-toast";
+import { calculateEstimatedPrice } from "../../utils/pricing";
 
 const RequestModal = ({ onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [hospitals, setHospitals] = useState([]);
   const [user, setUser] = useState(null); 
+  const [price, setPrice] = useState(0);
   
   const [formData, setFormData] = useState({
     recipientId: "", // <--- NEW: Who receives the request?
@@ -18,6 +20,11 @@ const RequestModal = ({ onClose, onSuccess }) => {
     quantity: 1,
     priority: "Normal"
   });
+
+  useEffect(() => {
+    const estimated = calculateEstimatedPrice(formData.bloodGroup, formData.quantity, formData.requestType);
+    setPrice(estimated);
+}, [formData.bloodGroup, formData.quantity, formData.requestType]);
 
 useEffect(() => {
     const init = async () => {
@@ -67,7 +74,7 @@ useEffect(() => {
       // We send 'requesterName' as MY name automatically
       await createRequest({
           ...formData,
-          requesterName: user.name || user.hospitalName // Auto-fill my name
+          requesterName: user.name || user.hospitalName, price // Auto-fill my name
       });
       toast.success("Request Sent to Hospital!");
       onSuccess();
@@ -160,6 +167,17 @@ useEffect(() => {
                </select>
              </div>
           </div>
+
+          <div style={{ marginBottom: "15px" }}>
+          <label style={{ display: "block", marginBottom: "5px", fontWeight: "600" }}>Estimated Price (₹)</label>
+          <input 
+              type="number" 
+              value={price} 
+              onChange={(e) => setPrice(e.target.value)} 
+              style={{ width: "100%", padding: "10px", borderRadius: "8px", border: "1px solid #ddd", fontWeight: "bold", fontSize: "1.1rem", color: "#166534" }}
+          />
+          <span style={{ fontSize: "0.8rem", color: "#666" }}>*Based on blood rarity and type. You can edit this.</span>
+        </div>
 
           <button type="submit" disabled={loading} style={{ width: "100%", padding: "14px", backgroundColor: theme.colors.primary, color: "white", border: "none", borderRadius: "8px", fontWeight: "600", cursor: "pointer" }}>
             {loading ? "Sending..." : "Send Request"}

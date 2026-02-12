@@ -9,7 +9,8 @@ import {
   Calendar, 
   Activity,
   LogOut,
-  X 
+  X,
+  UserPlus
 } from "lucide-react";
 import { theme } from "../../styles/theme";
 
@@ -21,7 +22,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     { path: "/inventory", icon: <Droplet size={20} />, label: "Inventory" },
     { path: "/donors", icon: <Users size={20} />, label: "Donors" },
     { path: "/requests", icon: <FileText size={20} />, label: "Requests" },
-    { path: "/logistics", icon: <Truck size={20} />, label: "Logistics" },
+    { path: "/patients", icon: <UserPlus size={20} />, label: "My Patients" },
     { path: "/camps", icon: <Calendar size={20} />, label: "Camps" },
     { path: "/lab", icon: <Activity size={20} />, label: "Lab Manager" },
   ];

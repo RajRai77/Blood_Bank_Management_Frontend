@@ -13,6 +13,7 @@ import {
 import { theme } from "../../styles/theme";
 import API from "../../services/api"; // Direct API access for full calculation
 import toast from "react-hot-toast";
+import TopBar from "../../components/layout/TopBar";
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -86,31 +87,7 @@ const Dashboard = () => {
     <div className="page-container" style={{ padding: "20px", maxWidth: "1600px", margin: "0 auto" }}>
       
       {/* HEADER */}
-      <div style={{ 
-        display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", 
-        gap: "16px", marginBottom: "32px" 
-      }}>
-        <div>
-          <h1 style={{ fontSize: "1.8rem", fontWeight: "800", color: theme.colors.textPrimary, margin: 0 }}>
-            Overview
-          </h1>
-          <p style={{ color: theme.colors.textSecondary, marginTop: "4px" }}>
-            Real-time insights across <b>{totalVolume.toLocaleString()} ml</b> of inventory.
-          </p>
-        </div>
-        <button 
-          onClick={fetchDashboardData}
-          style={{ 
-            display: "flex", alignItems: "center", gap: "8px",
-            padding: "10px 20px", backgroundColor: "white", 
-            border: `1px solid ${theme.colors.border}`, borderRadius: "8px", 
-            cursor: "pointer", fontWeight: "600", color: theme.colors.textPrimary,
-            boxShadow: theme.shadows.card
-          }}
-        >
-          <RefreshCw size={18} /> Refresh Data
-        </button>
-      </div>
+     <TopBar title="Dashboard" />
 
       {/* TOP KPI GRID (Responsive) */}
       <div style={{ 

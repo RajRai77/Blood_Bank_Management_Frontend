@@ -1,228 +1,307 @@
 import React, { useState, useEffect } from "react";
-import { 
-  Plus, 
-  Search, 
-  AlertCircle, 
-  CheckCircle,
-  Beaker
-} from "lucide-react";
-import { theme } from "../../styles/theme";
-import API from "../../services/api"; 
+import TopBar from "../../components/layout/TopBar";
+import { Plus, Filter, Search, Trash2, AlertTriangle, CheckCircle } from "lucide-react";
 import toast from "react-hot-toast";
-import AddStockModal from "../../components/common/AddStockModal";
+import { theme } from "../../styles/theme";
+
+// Service Imports
+import { getInventory, addInventory, deleteInventoryItem } from "../../services/inventory.service";
+import { getDonors } from "../../services/donor.service";
 
 const Inventory = () => {
-  const [inventory, setInventory] = useState([]);
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("All"); 
   const [showAddModal, setShowAddModal] = useState(false);
+  
+  // --- STATE ---
+  const [activeTab, setActiveTab] = useState("active"); // 'active' | 'history'
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState("All");
 
-  // Fetch Logic
   const fetchInventory = async () => {
     try {
-      setLoading(true);
-      const typeParam = filter === "All" ? "" : filter;
-      const res = await API.get(`/inventory/recent?inventoryType=${typeParam}`);
-      setInventory(res.data.data);
+        const res = await getInventory();
+        setItems(res.data.data);
     } catch (error) {
-      console.error(error);
-      toast.error("Failed to load inventory");
-    } finally {
-      setLoading(false);
-    }
+        console.error("Error fetching inventory");
+    } finally { setLoading(false); }
   };
 
-  useEffect(() => {
-    fetchInventory();
-  }, [filter]);
+  useEffect(() => { fetchInventory(); }, []);
 
-  // Helper: Status Badge Logic
-  const StatusBadge = ({ isTested, status }) => {
-    if (status === "quarantined") {
-      return (
-        <span className="badge" style={{ backgroundColor: theme.colors.status.criticalBg, color: theme.colors.status.critical, display: "flex", alignItems: "center", gap: "4px" }}>
-          <AlertCircle size={12} /> DISCARD
-        </span>
-      );
-    }
-    if (isTested) {
-      return (
-        <span className="badge" style={{ backgroundColor: theme.colors.status.safeBg, color: theme.colors.status.safe, display: "flex", alignItems: "center", gap: "4px" }}>
-          <CheckCircle size={12} /> SAFE
-        </span>
-      );
-    }
-    return (
-      <span className="badge" style={{ backgroundColor: theme.colors.status.warningBg, color: "#B45309", display: "flex", alignItems: "center", gap: "4px" }}>
-        <Beaker size={12} /> UNTESTED
-      </span>
-    );
+  const handleDelete = async (id) => {
+      if(!window.confirm("Are you sure you want to delete this record permanently?")) return;
+      try {
+          await deleteInventoryItem(id);
+          toast.success("Item Deleted");
+          fetchInventory(); // Refresh
+      } catch (error) {
+          toast.error("Delete Failed");
+      }
   };
+
+  // --- FILTERING LOGIC ---
+  const filteredItems = items.filter(item => {
+      // 1. Tab Filter
+      if (activeTab === "active") {
+          // Show Available OR Untested items
+          if (item.status === "out" || item.status === "expired") return false;
+      } else {
+          // Show History (Out/Expired)
+          if (item.status === "available") return false;
+      }
+
+      // 2. Type Filter
+      if (filterType !== "All" && item.inventoryType !== filterType) return false;
+
+      // 3. Search Filter
+      if (searchTerm) {
+          const searchLower = searchTerm.toLowerCase();
+          return (
+              item.bloodGroup.toLowerCase().includes(searchLower) || 
+              (item.bagId || "").toLowerCase().includes(searchLower) ||
+              (item.unitId || "").toLowerCase().includes(searchLower)
+          );
+      }
+      return true;
+  });
 
   return (
-    <div className="page-container" style={{ padding: "20px", maxWidth: "1600px", margin: "0 auto" }}>
+    <div style={{ paddingBottom: "50px" }}>
+      <TopBar title="Blood Inventory" />
       
-      {/* 1. Responsive Header */}
-      <div style={{ 
-        display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center", 
-        gap: "16px", marginBottom: "24px" 
-      }}>
-        <div>
-          <h1 style={{ fontSize: "1.8rem", fontWeight: "700", color: theme.colors.textPrimary, margin: 0 }}>
-            Blood Inventory
-          </h1>
-          <p style={{ color: theme.colors.textSecondary, marginTop: "4px", fontSize: "0.95rem" }}>
-            Manage units, monitor expiry, and lab status.
-          </p>
-        </div>
-        
-        <button onClick={() => setShowAddModal(true)} style={{ 
-          display: "flex", alignItems: "center", gap: "8px",
-          padding: "12px 20px", backgroundColor: theme.colors.primary, 
-          color: "white", border: "none", borderRadius: "8px", fontWeight: "600", cursor: "pointer",
-          boxShadow: theme.shadows.card, whiteSpace: "nowrap"
-        }}>
-          <Plus size={20} /> Add Stock
-        </button>
-      </div>
+      <div style={{ padding: "0 30px", maxWidth: "1600px", margin: "0 auto" }}>
+          
+          {/* Controls Header */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                  {/* Search */}
+                  <div style={{ position: "relative" }}>
+                      <Search size={18} color="#9CA3AF" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
+                      <input 
+                        placeholder="Search Unit ID..." 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        style={{ padding: "10px 10px 10px 40px", borderRadius: "8px", border: "1px solid #E5E7EB", width: "300px", outline: "none" }} 
+                      />
+                  </div>
 
-      {/* 2. Responsive Controls Bar */}
-      <div style={{ 
-        display: "flex", flexWrap: "wrap", gap: "16px", padding: "16px", 
-        backgroundColor: "white", borderRadius: "12px", 
-        boxShadow: theme.shadows.card, marginBottom: "24px", alignItems: "center"
-      }}>
-        {/* Search Input (Grows to fill space) */}
-        <div style={{ position: "relative", flex: "1 1 250px" }}> {/* Min width 250px */}
-          <Search size={20} color={theme.colors.textSecondary} style={{ position: "absolute", left: "12px", top: "12px" }} />
-          <input 
-            type="text" 
-            placeholder="Search Unit ID..." 
-            style={{
-              width: "100%", padding: "12px 12px 12px 40px", fontSize: "0.95rem",
-              border: `1px solid ${theme.colors.border}`, borderRadius: "8px", outline: "none"
-            }}
-          />
-        </div>
-        
-        {/* Filter Chips (Scrollable on mobile) */}
-        <div style={{ 
-          display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "4px",
-          flex: "1 1 auto", justifyContent: "flex-start", scrollbarWidth: "none" // Hide scrollbar
-        }}>
-          {["All", "Whole Blood", "Plasma", "RBC", "Platelets"].map(type => (
-            <button
-              key={type}
-              onClick={() => setFilter(type)}
-              style={{
-                padding: "10px 16px", borderRadius: "8px", fontSize: "0.9rem", cursor: "pointer", whiteSpace: "nowrap",
-                border: filter === type ? `1px solid ${theme.colors.primary}` : `1px solid ${theme.colors.border}`,
-                backgroundColor: filter === type ? "#FEF2F2" : "transparent",
-                color: filter === type ? theme.colors.primary : theme.colors.textSecondary,
-                fontWeight: filter === type ? "600" : "500", transition: "all 0.2s"
-              }}
-            >
-              {type}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 3. Responsive Grid */}
-      <div style={{ 
-        display: "grid", 
-        gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", // Cards shrink to 280px before stacking
-        gap: "20px" 
-      }}>
-        {inventory.map((item) => (
-          <div key={item._id} style={{ 
-            backgroundColor: "white", borderRadius: "12px", 
-            boxShadow: theme.shadows.card, padding: "20px", 
-            borderTop: `4px solid ${
-              item.inventoryType === "Plasma" ? "#FBBF24" : 
-              item.inventoryType === "Platelets" ? "#EAB308" : 
-              item.inventoryType === "Packed Red Cells" ? "#B91C1C" : theme.colors.primary
-            }`,
-            display: "flex", flexDirection: "column", justifyContent: "space-between", height: "100%"
-          }}>
-            {/* Card Top */}
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "16px", alignItems: "start" }}>
-              <div>
-                <span style={{ 
-                  fontSize: "0.75rem", color: theme.colors.textSecondary, 
-                  textTransform: "uppercase", letterSpacing: "0.5px", fontWeight: "600"
-                }}>
-                  {item.inventoryType}
-                </span>
-                <h3 style={{ fontSize: "1.6rem", fontWeight: "800", color: theme.colors.textPrimary, margin: "4px 0" }}>
-                  {item.bloodGroup}
-                </h3>
+                  {/* Type Filter */}
+                  <div style={{ display: "flex", gap: "8px" }}>
+                      {["All", "Whole Blood", "Plasma", "Red Cells (RBC)", "Platelets"].map(type => (
+                          <button 
+                            key={type} 
+                            onClick={() => setFilterType(type)}
+                            style={{ padding: "8px 12px", borderRadius: "6px", border: filterType===type ? `1px solid ${theme.colors.primary}` : "1px solid #E5E7EB", background: filterType===type ? "#FEF2F2" : "white", color: filterType===type ? theme.colors.primary : "#6B7280", fontSize: "0.85rem", cursor: "pointer" }}
+                          >
+                              {type}
+                          </button>
+                      ))}
+                  </div>
               </div>
-              <StatusBadge isTested={item.isTested} status={item.status} />
-            </div>
 
-            {/* Card Bottom */}
-            <div style={{ marginTop: "auto" }}>
-              <div style={{ 
-                display: "flex", justifyContent: "space-between", alignItems: "end",
-                paddingTop: "12px", borderTop: "1px solid #F3F4F6"
-              }}>
-                <div>
-                  <p style={{ fontSize: "0.95rem", fontWeight: "600", color: theme.colors.textPrimary, margin: "0 0 4px 0" }}>
-                    {item.unitId}
-                  </p>
-                  <p style={{ fontSize: "0.9rem", color: theme.colors.primary, fontWeight: "600", margin: "0 0 4px 0" }}>
-                     {item.volume || 450} ml
-                  </p>
-                  <p style={{ fontSize: "0.8rem", color: theme.colors.textSecondary, margin: 0 }}>
-                    {item.location}
-                  </p>
-                </div>
-                
-                {/* Action Button */}
-                {!item.isTested && (
-                  <button 
-                    onClick={() => window.location.href = "/lab"}
-                    style={{ 
-                      padding: "8px 14px", fontSize: "0.85rem",
-                      backgroundColor: theme.colors.secondary, color: "white",
-                      border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "500",
-                      boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
-                    }}
-                  >
-                    Test →
-                  </button>
-                )}
-              </div>
-            </div>
+              <button 
+                onClick={() => setShowAddModal(true)}
+                style={{ display: "flex", alignItems: "center", gap: "8px", padding: "12px 20px", background: "#EF4444", color: "white", border: "none", borderRadius: "8px", fontWeight: "bold", cursor: "pointer", boxShadow: "0 4px 6px rgba(239, 68, 68, 0.2)" }}
+              >
+                  <Plus size={20} /> Add Stock
+              </button>
           </div>
-        ))}
-      </div>
-      
-      {inventory.length === 0 && !loading && (
-         <div style={{ 
-           textAlign: "center", padding: "60px 20px", 
-           color: theme.colors.textSecondary, backgroundColor: "white", 
-           borderRadius: "12px", marginTop: "20px"
-         }}>
-           <p style={{fontSize: "1.1rem"}}>No units found matching your filters.</p>
-           <button onClick={() => setFilter("All")} style={{ 
-             marginTop: "12px", color: theme.colors.primary, background: "none", 
-             border: "none", cursor: "pointer", fontWeight: "600"
-           }}>
-             Clear Filters
-           </button>
-         </div>
-      )}
 
-      {showAddModal && (
-        <AddStockModal 
-          onClose={() => setShowAddModal(false)} 
-          onSuccess={fetchInventory} 
-        />
-      )}
+          {/* TABS */}
+          <div style={{ display: "flex", borderBottom: "1px solid #E5E7EB", marginBottom: "24px" }}>
+              <button 
+                onClick={() => setActiveTab("active")}
+                style={{ padding: "12px 24px", background: "none", border: "none", borderBottom: activeTab==="active" ? "3px solid #EF4444" : "3px solid transparent", fontWeight: "bold", color: activeTab==="active" ? "#EF4444" : "#6B7280", cursor: "pointer", fontSize: "1rem" }}
+              >
+                  Current Stock ({items.filter(i => i.status==="available").length})
+              </button>
+              <button 
+                onClick={() => setActiveTab("history")}
+                style={{ padding: "12px 24px", background: "none", border: "none", borderBottom: activeTab==="history" ? "3px solid #6B7280" : "3px solid transparent", fontWeight: "bold", color: activeTab==="history" ? "#374151" : "#9CA3AF", cursor: "pointer", fontSize: "1rem" }}
+              >
+                  History & Logs
+              </button>
+          </div>
+
+          {/* GRID */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "20px" }}>
+              {filteredItems.map(item => {
+                  const isUntested = item.isTested === false;
+                  
+                  return (
+                    <div key={item._id} style={{ background: "white", borderRadius: "12px", border: "1px solid #E5E7EB", padding: "20px", position: "relative", boxShadow: "0 2px 4px rgba(0,0,0,0.02)", transition: "all 0.2s" }}>
+                        
+                        {/* Header Badge */}
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
+                            <span style={{ fontSize: "0.75rem", fontWeight: "bold", color: "#6B7280", textTransform: "uppercase" }}>{item.inventoryType}</span>
+                            {isUntested ? (
+                                <span style={{ background: "#FEF3C7", color: "#D97706", padding: "2px 8px", borderRadius: "4px", fontSize: "0.75rem", fontWeight: "bold", display: "flex", alignItems: "center", gap: "4px" }}><AlertTriangle size={12}/> UNTESTED</span>
+                            ) : (
+                                <span style={{ background: "#ECFDF5", color: "#059669", padding: "2px 8px", borderRadius: "4px", fontSize: "0.75rem", fontWeight: "bold", display: "flex", alignItems: "center", gap: "4px" }}><CheckCircle size={12}/> SAFE</span>
+                            )}
+                        </div>
+
+                        {/* Main Content */}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "16px" }}>
+                            <div>
+                                <div style={{ fontSize: "2.5rem", fontWeight: "800", color: "#111827", lineHeight: "1" }}>{item.bloodGroup}</div>
+                                <div style={{ fontSize: "0.9rem", color: "#6B7280", marginTop: "8px", fontWeight: "bold" }}>#{item.bagId || item.unitId || "N/A"}</div>
+                            </div>
+                            <div style={{ textAlign: "right" }}>
+                                <div style={{ fontWeight: "bold", color: "#EF4444" }}>{item.quantity * 450} ml</div>
+                                <div style={{ fontSize: "0.8rem", color: "#9CA3AF" }}>Vol</div>
+                            </div>
+                        </div>
+
+                        {/* Footer Info */}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: "16px", borderTop: "1px dashed #E5E7EB" }}>
+                            <div style={{ fontSize: "0.8rem", color: "#6B7280" }}>
+                                Expires: <span style={{ fontWeight: "600", color: "#374151" }}>{new Date(item.expiryDate).toLocaleDateString()}</span>
+                            </div>
+                            
+                            {/* DELETE BUTTON */}
+                            <button 
+                                onClick={() => handleDelete(item._id)}
+                                title="Delete Item"
+                                style={{ padding: "8px", background: "white", border: "1px solid #FEE2E2", borderRadius: "8px", color: "#EF4444", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                                onMouseOver={(e) => e.currentTarget.style.background = "#FEF2F2"}
+                                onMouseOut={(e) => e.currentTarget.style.background = "white"}
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        </div>
+
+                        {/* Action for Untested */}
+                        {isUntested && activeTab === "active" && (
+                            <div style={{ marginTop: "12px", background: "#FFFBEB", padding: "8px", borderRadius: "6px", textAlign: "center" }}>
+                                <a href="/lab" style={{ fontSize: "0.85rem", fontWeight: "bold", color: "#D97706", textDecoration: "none" }}>Go to Lab for Testing →</a>
+                            </div>
+                        )}
+                    </div>
+                  );
+              })}
+          </div>
+
+          {filteredItems.length === 0 && (
+              <div style={{ textAlign: "center", padding: "60px", color: "#9CA3AF" }}>
+                  <p>No items found in {activeTab} view.</p>
+              </div>
+          )}
+      </div>
+
+      {showAddModal && <AddInventoryModal onClose={() => setShowAddModal(false)} onSuccess={fetchInventory} />}
     </div>
   );
+};
+
+// --- ADD INVENTORY MODAL (Fixed Name Rendering) ---
+const AddInventoryModal = ({ onClose, onSuccess }) => {
+    const [donors, setDonors] = useState([]);
+    const [form, setForm] = useState({ 
+        donorId: "", 
+        bloodGroup: "A+", 
+        inventoryType: "Whole Blood", 
+        quantity: 1, 
+        expiryDate: "" 
+    });
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        const loadDonors = async () => {
+            try {
+                const res = await getDonors();
+                const donorList = res.data.data;
+                setDonors(donorList);
+                
+                // Auto-select first donor
+                if(donorList.length > 0) {
+                    setForm(prev => ({ ...prev, donorId: donorList[0]._id }));
+                }
+            } catch (error) {
+                console.error("Failed to load donors");
+            }
+        };
+        loadDonors();
+    }, []);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            setLoading(true);
+            await addInventory(form);
+            toast.success("Stock Added Successfully");
+            onSuccess();
+            onClose();
+        } catch (error) {
+            toast.error(error.response?.data?.message || "Failed to add stock");
+        } finally { 
+            setLoading(false); 
+        }
+    };
+
+    const inputStyle = { width: "100%", padding: "12px", borderRadius: "8px", border: "1px solid #D1D5DB", marginTop: "4px", fontSize: "0.95rem" };
+    const labelStyle = { display: "block", marginTop: "12px", fontWeight: "bold", fontSize: "0.9rem", color: "#374151" };
+
+    return (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1200 }}>
+            <div style={{ background: "white", padding: "30px", borderRadius: "16px", width: "400px", maxWidth: "90%" }}>
+                <h2 style={{ marginTop: 0, color: "#111827" }}>Add Manual Stock</h2>
+                <p style={{ margin: "0 0 20px 0", color: "#6B7280", fontSize: "0.9rem" }}>Register blood collected from a donor.</p>
+                
+                <form onSubmit={handleSubmit}>
+                    
+                    {/* SELECT DONOR DROPDOWN (Fixed Display) */}
+                    <label style={{...labelStyle, marginTop: 0}}>Select Donor</label>
+                    <select 
+                        required 
+                        style={inputStyle} 
+                        value={form.donorId} 
+                        onChange={e=>setForm({...form, donorId: e.target.value})}
+                    >
+                        <option value="">-- Choose a Donor --</option>
+                        {donors.map(d => {
+                            // Logic to find the name properly
+                            const displayName = d.name || `${d.firstName || ''} ${d.lastName || ''}`.trim() || "Unknown Donor";
+                            return (
+                                <option key={d._id} value={d._id}>
+                                    {displayName} ({d.bloodGroup || "?"})
+                                </option>
+                            );
+                        })}
+                    </select>
+
+                    <label style={labelStyle}>Blood Group</label>
+                    <select style={inputStyle} value={form.bloodGroup} onChange={e=>setForm({...form, bloodGroup: e.target.value})}>
+                        {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(g => <option key={g}>{g}</option>)}
+                    </select>
+                    
+                    <label style={labelStyle}>Type</label>
+                    <select style={inputStyle} value={form.inventoryType} onChange={e=>setForm({...form, inventoryType: e.target.value})}>
+                        {["Whole Blood", "Plasma", "Red Cells (RBC)", "Platelets"].map(t => <option key={t}>{t}</option>)}
+                    </select>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                        <div>
+                            <label style={labelStyle}>Quantity</label>
+                            <input type="number" min="1" required style={inputStyle} value={form.quantity} onChange={e=>setForm({...form, quantity: e.target.value})} />
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Expiry Date</label>
+                            <input type="date" required style={inputStyle} value={form.expiryDate} onChange={e=>setForm({...form, expiryDate: e.target.value})} />
+                        </div>
+                    </div>
+
+                    <div style={{ display: "flex", gap: "10px", marginTop: "24px" }}>
+                        <button type="button" onClick={onClose} style={{ flex: 1, padding: "12px", borderRadius: "8px", border: "1px solid #D1D5DB", background: "white", fontWeight: "600", cursor: "pointer" }}>Cancel</button>
+                        <button disabled={loading} style={{ flex: 1, padding: "12px", borderRadius: "8px", border: "none", background: "#111827", color: "white", fontWeight: "bold", cursor: "pointer", opacity: loading ? 0.7 : 1 }}>
+                            {loading ? "Adding..." : "Add Stock"}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
 };
 
 export default Inventory;

@@ -1,16 +1,27 @@
-import API from "./api";
+import api from "./api"; // Your Axios instance
 
-// 1. Get All Requests (Optional Filter: pending, approved, rejected)
-export const getRequests = (status = "") => {
-  return API.get(`/requests?status=${status}`);
+export const getRequests = (filter) => {
+  return api.get(`/requests?status=${filter || ""}`);
 };
 
-// 2. Create New Request
 export const createRequest = (data) => {
-  return API.post("/requests", data);
+  return api.post("/requests", data);
 };
 
-// 3. Approve or Reject Request
-export const updateRequestStatus = (id, status, deliveryData = null) => {
-  return API.put(`/requests/${id}/status`, { status, deliveryDetails: deliveryData });
+// --- FIX THIS FUNCTION ---
+export const updateRequestStatus = (id, status, deliveryDetails, paymentDetails) => {
+  return api.put(`/requests/${id}/status`, { 
+      status, 
+      deliveryDetails, 
+      paymentDetails // <--- ENSURE THIS IS HERE
+  });
 };
+
+export const submitPayment = (id, paymentData) => {
+    // api.put automatically handles base URL and credentials
+    return api.put(`/requests/${id}/payment`, paymentData);
+};
+
+export const verifyDeliveryOTP = (id, otp) => {
+    return api.post(`/requests/${id}/verify-otp`, { otp });
+}
