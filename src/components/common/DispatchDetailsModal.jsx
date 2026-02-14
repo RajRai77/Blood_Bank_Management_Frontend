@@ -24,7 +24,7 @@ const LOCAL_IP = import.meta.env.VITE_LOCAL_IP || "localhost";
 const socket = io(`http://${LOCAL_IP}:8000`);
 
 // Helper to auto-center map
-const RecenterAutomatically = ({ lat, lng }) => {
+const Recenter = ({ lat, lng }) => {
   const map = useMap();
   useEffect(() => { map.setView([lat, lng]); }, [lat, lng, map]);
   return null;
