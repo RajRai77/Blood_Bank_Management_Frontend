@@ -44,19 +44,34 @@ const Lab = () => {
       <div style={{ display: "flex", gap: "24px", borderBottom: "1px solid #E5E7EB", marginBottom: "32px" }}>
         <button 
           onClick={() => setActiveTab("screening")}
-          style={{ 
-            padding: "12px 0", borderBottom: activeTab === "screening" ? `3px solid ${theme.colors.primary}` : "none",
-            color: activeTab === "screening" ? theme.colors.primary : theme.colors.textSecondary, fontWeight: "600", cursor: "pointer", background: "none", border: "none"
-          }}
+         style={{ 
+        padding: "12px 0", 
+        // FIX: Remove 'border: "none"' and just set the specific borders
+        borderTop: "none",
+        borderLeft: "none",
+        borderRight: "none",
+        borderBottom: activeTab === "screening" ? `3px solid ${theme.colors.primary}` : "3px solid transparent", // Use transparent instead of none
+        color: activeTab === "screening" ? theme.colors.primary : theme.colors.textSecondary, 
+        fontWeight: "600", 
+        cursor: "pointer", 
+        background: "none"
+      }}
         >
           TTI Screening
         </button>
         <button 
           onClick={() => setActiveTab("processing")}
           style={{ 
-            padding: "12px 0", borderBottom: activeTab === "processing" ? `3px solid ${theme.colors.primary}` : "none",
-            color: activeTab === "processing" ? theme.colors.primary : theme.colors.textSecondary, fontWeight: "600", cursor: "pointer", background: "none", border: "none"
-          }}
+        padding: "12px 0", 
+        borderTop: "none",
+        borderLeft: "none",
+        borderRight: "none",
+        borderBottom: activeTab === "processing" ? `3px solid ${theme.colors.primary}` : "3px solid transparent",
+        color: activeTab === "processing" ? theme.colors.primary : theme.colors.textSecondary, 
+        fontWeight: "600", 
+        cursor: "pointer", 
+        background: "none"
+      }}
         >
           Component Separation
         </button>
